@@ -1,0 +1,127 @@
+#!/usr/bin/python
+# CMK-MSTeams Websocket integration
+# madnut 2017, based on Rob's CMK-Slack
+# The icon stuff could be done better, I know
+
+import os, sys
+import requests
+import json
+
+#edit these variables
+# - msteams_path is the JSON payload url Path for the incoming webhook
+#    1) create an incoming webhook on the connectors dialog,
+#    2) paste in the path as the variable below.
+#
+# - icons_path is the URL with trailing slash to the publicly available icons location
+
+msteams_path = "https://webhook_url"
+icons_path = "https://path_to_icons/icons/"
+
+# add proxy if needed
+proxies = {
+#           "http"  : "http://proxy:3128",
+#           "https" : "http://proxy:3128"
+          }
+
+# Probably better to leave the stuff below well alone
+
+headers = {"Content-type": "application/json", "Accept": "text/plain"}
+titleText = "**" + os.environ['NOTIFY_NOTIFICATIONTYPE'] + "**"
+message = os.environ['NOTIFY_HOSTNAME'] + " "
+plaintext = message
+authorText = ""
+
+# here lies service actions
+if os.environ['NOTIFY_WHAT'] == 'SERVICE':
+    message += "  " + os.environ['NOTIFY_SERVICEDESC'] + " is **"
+    plaintext += os.environ['NOTIFY_SERVICEDESC'] + " - **"
+    message += os.environ['NOTIFY_SERVICESTATE'] + "** \n\n`"
+    message += os.environ['NOTIFY_SERVICEOUTPUT'] + "` \n\n"
+    message += os.environ['NOTIFY_SERVICEACKCOMMENT']
+    plaintext += os.environ['NOTIFY_SERVICESTATE'] + "** - "
+    plaintext += os.environ['NOTIFY_SERVICEOUTPUT']
+    if os.environ['NOTIFY_NOTIFICATIONAUTHOR'] != '':
+      authorText += "Triggered by **" + os.environ['NOTIFY_NOTIFICATIONAUTHOR'] + "** - *" + os.environ['NOTIFY_NOTIFICATIONCOMMENT']  + "*"
+    if os.environ['NOTIFY_NOTIFICATIONTYPE'] == 'DOWNTIMESTART':
+      icon = "moon-4-64.gif"
+      colour = "439FE0"
+    elif os.environ['NOTIFY_NOTIFICATIONTYPE'] == 'DOWNTIMEEND':
+      icon = "sun-3-64.gif"
+      colour = "33cccc"
+    elif os.environ['NOTIFY_NOTIFICATIONTYPE'] == 'ACKNOWLEDGEMENT':
+      icon = "edit-2-64.gif"
+      colour = "8f006b"
+      plaintext += " - " + os.environ['NOTIFY_SERVICEACKCOMMENT']
+    elif os.environ['NOTIFY_SERVICESTATE'] ==  'CRITICAL':
+      icon = "fire-2-64.gif"
+      colour = "a30200"
+    elif os.environ['NOTIFY_SERVICESTATE'] ==  'WARNING':
+      icon = "warning-64.gif"
+      colour = "daa038"
+    elif os.environ['NOTIFY_SERVICESTATE'] ==  'UNKNOWN':
+      icon = "question-shield-64.gif"
+      colour = "cccccc"
+    elif os.environ['NOTIFY_SERVICESTATE'] ==  'OK':
+      icon = "ok-64.gif"
+      colour = "2eb886"
+    else:
+      icon = "cmk.png"
+
+#otherwise, it's a host
+else:
+    message += "is **" + os.environ['NOTIFY_HOSTSTATE'] + "** "
+    plaintext += "is **" + os.environ['NOTIFY_HOSTSTATE'] + "** - "
+    message += os.environ['NOTIFY_HOSTACKCOMMENT']
+    if os.environ['NOTIFY_NOTIFICATIONAUTHOR'] != '':
+      authorText += "Triggered by **" + os.environ['NOTIFY_NOTIFICATIONAUTHOR'] + "** - *" + os.environ['NOTIFY_NOTIFICATIONCOMMENT']  + "*"
+    if os.environ['NOTIFY_NOTIFICATIONTYPE'] == 'DOWNTIMESTART':
+      icon = "moon-4-64.gif"
+      colour = "439FE0"
+    elif os.environ['NOTIFY_NOTIFICATIONTYPE'] == 'DOWNTIMEEND':
+      icon = "sun-3-64.gif"
+      colour = "33cccc"
+    elif os.environ['NOTIFY_NOTIFICATIONTYPE'] == 'ACKNOWLEDGEMENT':
+      icon = "edit-2-64.gif"
+      colour = "8f006b"
+    elif os.environ['NOTIFY_HOSTSTATE'] ==  'DOWN':
+      icon = "fire-2-64.gif"
+      colour = "a30200"
+    elif os.environ['NOTIFY_HOSTSTATE'] ==  'WARNING':
+      icon = "warning-64.gif"
+      colour = "daa038"
+    elif os.environ['NOTIFY_HOSTSTATE'] ==  'UNKNOWN':
+      icon = "question-shield-64.gif"
+      colour = "cccccc"
+    elif os.environ['NOTIFY_HOSTSTATE'] ==  'UP':
+      icon = "ok-64.gif"
+      colour = "2eb886"
+    else:
+      icon = "cmk.png"
+
+#and this is us flinging off the message
+section = {
+  "title": titleText,
+  "activityTitle":  message,
+  "activitySubtitle": authorText,
+#  "activityText": "",
+  "activityImage": icons_path + icon,
+#  "facts": [{
+#            "name": "Fact 1",
+#            "value": "Value 1"
+#        }, {
+#            "name": "Fact 2",
+#            "value": "Value 2"
+#        }],
+  "markdown": True
+  }
+data = {
+  "@type": "MessageCard",
+  "@context": "http://schema.org/extensions",
+#  "title": "CMK Alert",
+  "summary": plaintext,
+  "sections": [section],
+  "themeColor": colour
+  }
+conn = requests.post(msteams_path, data = json.dumps(data), proxies = proxies)
+
+print(conn.status_code)
