@@ -15,7 +15,7 @@ import json
 # - icons_path is the URL with trailing slash to the publicly available icons location
 
 msteams_path = "https://webhook_url"
-icons_path = "https://path_to_icons/icons/"
+icons_path = "https://github.com/madnut-ua/check_mk-msteams/raw/master/icons/"
 
 # add proxy if needed
 proxies = {
