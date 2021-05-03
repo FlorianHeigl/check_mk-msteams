@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # CMK-MSTeams Websocket integration
 # madnut 2017, based on Rob's CMK-Slack
 # The icon stuff could be done better, I know
